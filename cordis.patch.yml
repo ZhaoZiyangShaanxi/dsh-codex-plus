@@ -1,0 +1,5 @@
+# dsh-codex-plus: ChatGPT / Codex subscription quota console for DeepSeek Harness.
+# One insert only. This plugin never claims another plugin's provider route.
+- insert:
+    - id: codex-plus
+      name: 'dsh-codex-plus'
