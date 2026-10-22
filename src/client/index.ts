@@ -13,7 +13,13 @@ export const inject = ['slots', 'connection', 'locale']
 export const name = 'codex-plus'
 
 const NS = 'codex-plus'
-const CHANNEL = '/api/codex-plus'
+/**
+ * DSH 的 RPC channel 只能是单段的 "/api"：assertTarget 会拒绝任何含第二个
+ * 斜杠的 channel。插件的命名空间由下面 rpc.call 包装层拼进去。
+ */
+const CHANNEL = '/api'
+/** 我们在 /api 下的端点命名空间。 */
+const NAMESPACE = 'codex-plus'
 
 /** 中英双语字典；DSH 的 locale 服务据此按语言取词。 */
 const dict = {
@@ -759,11 +765,16 @@ export function apply(ctx) {
   }, 'codex-plus: styles')
 
   // RPC 客户端：只用 DSH 自己的连接通道，不额外开 HTTP 端点。
+  //
+  // DSH 的 RPC 契约：channel 只能是 "/api"（assertTarget 不允许 channel 里
+  // 出现第二个斜杠），真正的端点是 channel 下的相对路径。宿主按
+  // /api/codex-plus/<endpoint> 逐条注册精确路由，所以这里把命名空间并进
+  // endpoint：call('/api', 'codex-plus/status')。
   const rpc = {
     call: (channel, endpoint, payload, signal) => {
       const connection = ctx.get('connection')
       if (connection === undefined) return Promise.resolve({ ok: false, error: { code: 'unsupported', message: 'no connection', details: {} } })
-      return connection.rpc.call(channel, endpoint, payload, signal)
+      return connection.rpc.call(channel, NAMESPACE + '/' + endpoint, payload, signal)
     },
   }
 

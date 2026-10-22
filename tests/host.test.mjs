@@ -122,11 +122,24 @@ test('host 插件：apply 注册授权流与 RPC 路由', async () => {
   assert.equal(typeof flow.run, 'function')
   assert.deepEqual(flow.methods.map(method => method.id), ['oauth', 'device_code'])
 
-  assert.equal(connection.routes.length, 1)
-  const route = connection.routes[0]
-  assert.equal(route.path, '/api/codex-plus')
-  assert.deepEqual(route.methods, ['POST'])
-  assert.equal(route.requestBody, 'buffered')
+  // 每个端点一条精确路由：DSH 的 /api 桥按精确路径分发，客户端请求
+  // /api/codex-plus/<endpoint>，所以这里必须是逐端点的 path。
+  assert.ok(connection.routes.length >= 15, '应为每个端点注册一条路由, 实际 ' + connection.routes.length)
+  for (const route of connection.routes) {
+    assert.ok(route.path.startsWith('/api/codex-plus/'), '路由前缀错误: ' + route.path)
+    assert.deepEqual(route.methods, ['POST'])
+    assert.equal(route.requestBody, 'buffered')
+  }
+  const statusRoute = connection.routes.find(r => r.path === '/api/codex-plus/status')
+  assert.ok(statusRoute !== undefined, '必须存在 status 端点路由')
+  // 路径不能出现空的/点的段——与 DSH assertTarget 的规则一致
+  for (const route of connection.routes) {
+    const segments = route.path.slice('/api/codex-plus/'.length).split('/')
+    for (const seg of segments) {
+      assert.ok(seg !== '' && seg !== '.' && seg !== '..', '非法路径段: ' + route.path)
+      assert.match(seg, /^[A-Za-z0-9_$.-]+$/, '路径段含非法字符: ' + route.path)
+    }
+  }
   assert.ok(logs.some(line => line.includes('quota console ready')))
 })
 
@@ -139,11 +152,14 @@ test('RPC：未登录时 status 返回 signedIn:false，未知端点返回 not-f
 
   const mod = await import('../lib/index.js')
   mod.apply(ctx)
-  const route = connection.routes[0]
 
   const call = async (method, payload) => {
+    const route = connection.routes.find(r => r.path === '/api/codex-plus/' + method)
+    if (route === undefined) {
+      return { type: 'server-response', rpcId: 'r1', result: { ok: false, error: { code: 'not-found', message: 'no route for ' + method, details: {} } } }
+    }
     const response = await route.fetch(
-      new Request('http://127.0.0.1/api/codex-plus', {
+      new Request('http://127.0.0.1/api/codex-plus/' + method, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ type: 'client-request', rpcId: 'r1', method, payload }),
@@ -177,7 +193,7 @@ test('RPC：信封校验——非 JSON、错误 content-type、错误 method 都
 
   const mod = await import('../lib/index.js')
   mod.apply(ctx)
-  const route = connection.routes[0]
+  const route = connection.routes.find(r => r.path === '/api/codex-plus/status')
 
   const wrongContentType = await route.fetch(
     new Request('http://127.0.0.1/api/codex-plus', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'hi' }),
