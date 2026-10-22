@@ -75,15 +75,15 @@
     "subscription",
     "oauth"
   ],
-  "author": "zzy040919-ship-it",
+  "author": "ZhaoZiyangShaanxi",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zzy040919-ship-it/dsh-codex-plus.git"
+    "url": "git+https://github.com/ZhaoZiyangShaanxi/dsh-codex-plus.git"
   },
-  "homepage": "https://github.com/zzy040919-ship-it/dsh-codex-plus#readme",
+  "homepage": "https://github.com/ZhaoZiyangShaanxi/dsh-codex-plus#readme",
   "bugs": {
-    "url": "https://github.com/zzy040919-ship-it/dsh-codex-plus/issues"
+    "url": "https://github.com/ZhaoZiyangShaanxi/dsh-codex-plus/issues"
   },
   "publishConfig": {
     "access": "public"
